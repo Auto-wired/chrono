@@ -1,20 +1,19 @@
 # Base image for Next.js production build
 FROM node:20-alpine AS base
 
-# Install dependencies for Prisma Client
-# pnpm install -g pnpm
-ENV PNPM_HOME="/pnpm"
-ENV PATH="$PNPM_HOME:$PATH"
-RUN corepack enable
-
 # 1. Install dependencies stage
 FROM base AS deps
 WORKDIR /app
 
-# Copy package.json and pnpm-lock.yaml for dependency installation
-COPY package.json pnpm-lock.yaml ./ 
+# npm 환경이므로 package.json과 package-lock.json을 복사합니다.
+COPY package.json package-lock.jso[n] ./
 
-RUN pnpm install --frozen-lockfile
+# package-lock.json이 있으면 엄격 모드(ci)로, 없으면 일반 install로 유연하게 처리
+RUN if [ -f package-lock.json ]; then \
+      npm ci; \
+    else \
+      npm install; \
+    fi
 
 # 2. Build stage
 FROM base AS builder
@@ -22,17 +21,17 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . . 
 
-# Generate Prisma client and build Next.js application
+# Prisma 클라이언트 생성 및 Next.js 애플리케이션 빌드
 RUN npx prisma generate
-RUN pnpm run build
+RUN npm run build
 
 # 3. Production image stage
 FROM base AS runner
 WORKDIR /app
 
-ENV NODE_ENV production
+ENV NODE_ENV=production
 
-# Set correct permission for Next.js caching
+# Next.js 캐싱을 위한 올바른 권한 설정
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
@@ -44,6 +43,7 @@ USER nextjs
 
 EXPOSE 3000
 
-ENV PORT 3000
+ENV PORT=3000
+ENV HOSTNAME="0.0.0.0"
 
 CMD ["node", "server.js"]
