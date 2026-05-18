@@ -1,26 +1,24 @@
-# Base image for Next.js production build
 FROM node:20-alpine AS base
 
-# 1. Install dependencies stage
+# 1. Dependencies
 FROM base AS deps
 WORKDIR /app
 COPY package.json package-lock.jso[n] ./
 RUN if [ -f package-lock.json ]; then npm ci; else npm install; fi
 
-# 2. Build stage
+# 2. Build
 FROM base AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . . 
 
-# 💡 [위치 수정] Prisma가 코드를 굽기 전에 "넌 무조건 백엔드 서버용이야" 라고 뇌를 개조해 줍니다.
-ENV PRISMA_CLIENT_ENGINE_TYPE=binary
+# 💡 넥스트 빌드 봇이 프리즈마를 실행할 때 "나 DB 주소 있으니까 헛짓마"라고 속이는 마법의 한 줄
+ENV DATABASE_URL="mysql://root:mock@localhost:3306/chrono_mock"
 
-# 이제 올바른 엔진 모드로 클라이언트 코드가 생성됩니다.
 RUN npx prisma generate
 RUN npm run build
 
-# 3. Production image stage
+# 3. Runner
 FROM base AS runner
 WORKDIR /app
 ENV NODE_ENV=production
