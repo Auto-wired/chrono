@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  chrono-app:
+    image: ghcr.io/your-github-username/your-repository-name:latest # 빌드된 Docker 이미지 경로로 변경
+    container_name: chrono-app
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: "mysql://chrono_user:chrono_pass@global-mariadb:3306/chrono_db"
+      AUTH_SECRET: your-secret-key-at-least-32-chars-long # .env의 AUTH_SECRET과 동일하게 설정
+      NEXTAUTH_URL: http://your-domain.com # 운영 환경의 도메인으로 변경
+      NODE_ENV: production
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+    networks:
+      - npm_default
+
+networks:
+  npm_default:
+    external: true
+
+
