@@ -13,13 +13,11 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . . 
 
-# Prisma 클라이언트 생성
-RUN npx prisma generate
-
-# 💡 [여기에 추가] 깃허브 가상 컴퓨터가 빌드할 때 DB가 없어도 튕기지 않도록 방어벽을 칩니다.
+# 💡 [위치 수정] Prisma가 코드를 굽기 전에 "넌 무조건 백엔드 서버용이야" 라고 뇌를 개조해 줍니다.
 ENV PRISMA_CLIENT_ENGINE_TYPE=binary
 
-# 애플리케이션 빌드
+# 이제 올바른 엔진 모드로 클라이언트 코드가 생성됩니다.
+RUN npx prisma generate
 RUN npm run build
 
 # 3. Production image stage
