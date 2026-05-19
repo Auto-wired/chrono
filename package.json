@@ -6,7 +6,6 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "prod:start": "npx prisma db push && node server.js",
     "lint": "eslint"
   },
   "dependencies": {
