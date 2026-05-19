@@ -34,7 +34,6 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 # 배포본(standalone) 내부로 prisma 스키마 파일과 생성된 엔진을 강제로 심어줍니다.
 # 실행 권한 오류를 방지하기 위해 소유자(nextjs:nodejs)도 함께 지정합니다.
 COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
-COPY --from=builder --chown=nextjs:nodejs /app/node_modules/.prisma ./node_modules/.prisma
 
 USER nextjs
 EXPOSE 3000
