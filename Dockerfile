@@ -12,6 +12,8 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . . 
 
+ENV DATABASE_URL="mysql://mock:mock@localhost:3306/mock"
+
 RUN npx prisma generate
 RUN npm run build
 
