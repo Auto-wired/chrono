@@ -3,7 +3,7 @@ FROM node:20-alpine AS base
 # 1. Dependencies
 FROM base AS deps
 WORKDIR /app
-COPY package.json package-lock.jso[n] ./
+COPY package.json package-lock.json ./
 RUN if [ -f package-lock.json ]; then npm ci; else npm install; fi
 
 # 2. Build
@@ -29,6 +29,12 @@ RUN adduser --system --uid 1001 nextjs
 COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./.
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+
+# 💡 [여기에 코드가 추가되었습니다!]
+# 배포본(standalone) 내부로 prisma 스키마 파일과 생성된 엔진을 강제로 심어줍니다.
+# 실행 권한 오류를 방지하기 위해 소유자(nextjs:nodejs)도 함께 지정합니다.
+COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/.prisma ./node_modules/.prisma
 
 USER nextjs
 EXPOSE 3000
