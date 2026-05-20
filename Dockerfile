@@ -12,8 +12,6 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . . 
 
-ENV DATABASE_URL="mysql://mock:mock@localhost:3306/mock"
-
 RUN npx prisma generate
 RUN npm run build
 
@@ -28,10 +26,6 @@ RUN adduser --system --uid 1001 nextjs
 COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
-
-# 💡 [순정 상태의 완벽한 복사]
-# output을 뺐기 때문에 이제 schema.prisma와 생성된 엔진(.prisma)이 
-# 넥스트 스탠다론 배포 규칙에 맞는 표준 위치에 딱딱 들어가 안착합니다.
 COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules/.prisma ./node_modules/.prisma
 
@@ -40,4 +34,4 @@ EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-CMD ["node", "server.js"]
+CMD ["sh", "-c", "npx prisma migrate deploy && node server.js"]
