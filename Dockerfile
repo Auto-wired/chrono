@@ -12,6 +12,8 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . . 
 
+ENV DATABASE_URL=mysql://temp:temp@localhost:3306/temp
+
 RUN npx prisma generate
 RUN npm run build
 
