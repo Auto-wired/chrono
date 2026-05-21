@@ -55,7 +55,7 @@ const CalendarView = memo(({ events, onDateSelect, onEventClick, onEventChange }
           minute: '2-digit',
           hour12: false
         }}
-        eventClassNames="cursor-pointer hover:brightness-95 transition-all rounded-lg border-none px-2 py-1 text-xs font-semibold shadow-sm"
+        eventClassNames="cursor-pointer hover:brightness-95 rounded-lg border-none px-2 py-1 text-xs font-semibold shadow-sm"
       />
     </div>
   );
