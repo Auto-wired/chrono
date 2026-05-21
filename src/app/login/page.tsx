@@ -1,12 +1,9 @@
 'use client';
 
-'use client';
-
-import React from 'react';
 import Link from 'next/link';
 import { Calendar } from 'lucide-react';
 import { useFormStatus } from 'react-dom';
-import { useFormState } from 'react-dom';
+import { useActionState } from 'react';
 import { authenticate } from '@/app/actions';
 
 function LoginButton() {
@@ -23,7 +20,7 @@ function LoginButton() {
 }
 
 export default function LoginPage() {
-  const [errorMessage, dispatch] = useFormState(authenticate, undefined);
+  const [errorMessage, dispatch] = useActionState(authenticate, undefined);
 
   return (
     <div className="min-h-screen bg-[#f8fafc] flex flex-col items-center justify-center p-6">

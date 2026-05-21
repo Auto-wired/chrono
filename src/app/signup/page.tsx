@@ -1,12 +1,9 @@
 'use client';
 
-'use client';
-
-import React from 'react';
 import Link from 'next/link';
 import { Calendar, UserPlus } from 'lucide-react';
 import { useFormStatus } from 'react-dom';
-import { useFormState } from 'react-dom';
+import { useActionState } from 'react';
 import { signup } from '@/app/actions';
 
 function SignupButton() {
@@ -23,7 +20,7 @@ function SignupButton() {
 }
 
 export default function SignupPage() {
-  const [state, dispatch] = useFormState(signup, undefined);
+  const [state, dispatch] = useActionState(signup, undefined);
 
   return (
     <div className="min-h-screen bg-[#f8fafc] flex flex-col items-center justify-center p-6">

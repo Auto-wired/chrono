@@ -1,13 +1,16 @@
-import { auth } from "./auth";
+import NextAuth from "next-auth";
+import { authConfig } from "./auth.config";
+
+// 💡 DB 로직이 없는 가벼운 설정으로 초기화
+const { auth } = NextAuth(authConfig);
 
 export default auth((req) => {
   const isLoggedIn = !!req.auth;
   const { pathname } = req.nextUrl;
 
-  // 인증이 필요한 경로 설정
-  const protectedPaths = ["/"]; // 메인 페이지는 로그인해야 접근 가능
-
-  const isProtected = protectedPaths.some((path) => pathname.startsWith(path));
+  // 💡 기존 코드의 startsWith("/")는 /login 까지 잡아버리는 버그가 있어서 
+  // 메인 페이지만 정확히 타겟팅하도록 수정했습니다.
+  const isProtected = pathname === "/";
 
   if (isProtected && !isLoggedIn) {
     const newUrl = new URL("/login", req.nextUrl.origin);
@@ -15,6 +18,7 @@ export default auth((req) => {
   }
 });
 
+// 💡 에러를 유발하던 (.+) 그룹 캡처를 제거한 표준 안전 매처
 export const config = {
-  matcher: ["/((?!api|_next/static|_next/image|favicon.ico|login|signup).*)(.+)"],
+  matcher: ["/((?!api|_next/static|_next/image|favicon.ico|login|signup).*)"],
 };
