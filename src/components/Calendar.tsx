@@ -75,10 +75,8 @@ const Calendar = () => {
     }
   ]);
   
-  // const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<Partial<EventData> | null>(null);
   const [isEditing, setIsEditing] = useState(false);
-  
   const [startTime, setStartTime] = useState('09:00');
   const [endTime, setEndTime] = useState('10:00');
   const [startDate, setStartDate] = useState('');
@@ -105,7 +103,6 @@ const Calendar = () => {
     setStartTime(sTime);
     setEndTime(eTime);
     setIsEditing(false);
-    // setIsSidebarOpen(true);
   }, []);
 
   const handleEventClick = useCallback((clickInfo: EventClickArg) => {
@@ -123,7 +120,6 @@ const Calendar = () => {
       allDay: clickInfo.event.allDay,
     });
     setIsEditing(true);
-    // setIsSidebarOpen(true);
   }, []);
 
   const handleEventChange = useCallback((changeInfo: EventChangeArg) => {
@@ -136,13 +132,6 @@ const Calendar = () => {
       } : ev
     ));
   }, []);
-
-  // const closeSidebar = useCallback(() => {
-  //   setIsSidebarOpen(false);
-  //   setTimeout(() => {
-  //     setSelectedEvent(null);
-  //   }, 300);
-  // }, []);
 
   const handleSaveEvent = () => {
     if (!selectedEvent?.title || !startDate) return;
@@ -164,14 +153,54 @@ const Calendar = () => {
     } else {
       setEvents(prev => [...prev, newEvent]);
     }
-    // closeSidebar();
   };
 
   const handleDeleteEvent = () => {
     if (selectedEvent?.id) {
       setEvents(prev => prev.filter(ev => ev.id !== selectedEvent.id));
-      // closeSidebar();
     }
+  };
+
+  const dateSetting = () => {
+    return (
+      <>
+        <div className="space-y-3">
+          <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">시작 일시</label>
+          <div className="grid grid-cols-2 gap-3">
+            <input 
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="w-full p-3 bg-slate-50 border border-slate-100 rounded-xl text-sm font-medium outline-none"
+            />
+            <input 
+              type="time"
+              value={startTime}
+              onChange={(e) => setStartTime(e.target.value)}
+              className="w-full p-3 bg-slate-50 border border-slate-100 rounded-xl text-sm font-medium outline-none"
+            />
+          </div>
+        </div>
+
+        <div className="space-y-3">
+          <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">종료 일시</label>
+          <div className="grid grid-cols-2 gap-3">
+            <input 
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="w-full p-3 bg-slate-50 border border-slate-100 rounded-xl text-sm font-medium outline-none"
+            />
+            <input 
+              type="time"
+              value={endTime}
+              onChange={(e) => setEndTime(e.target.value)}
+              className="w-full p-3 bg-slate-50 border border-slate-100 rounded-xl text-sm font-medium outline-none"
+            />
+          </div>
+        </div>
+      </>
+    );
   };
 
   return (
@@ -198,12 +227,6 @@ const Calendar = () => {
                   </h2>
                   <p className="text-slate-500 text-sm font-medium">내용을 입력해 주세요</p>
                 </div>
-                {/* <button 
-                  onClick={closeSidebar}
-                  className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-400"
-                >
-                  <X className="w-6 h-6" />
-                </button> */}
               </div>
               
               <div className="flex-grow space-y-8 pb-8">
@@ -219,41 +242,7 @@ const Calendar = () => {
                   />
                 </div>
 
-                <div className="space-y-3">
-                  <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">시작 일시</label>
-                  <div className="grid grid-cols-2 gap-3">
-                    <input 
-                      type="date"
-                      value={startDate}
-                      onChange={(e) => setStartDate(e.target.value)}
-                      className="w-full p-3 bg-slate-50 border border-slate-100 rounded-xl text-sm font-medium outline-none"
-                    />
-                    <input 
-                      type="time"
-                      value={startTime}
-                      onChange={(e) => setStartTime(e.target.value)}
-                      className="w-full p-3 bg-slate-50 border border-slate-100 rounded-xl text-sm font-medium outline-none"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                  <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">종료 일시</label>
-                  <div className="grid grid-cols-2 gap-3">
-                    <input 
-                      type="date"
-                      value={endDate}
-                      onChange={(e) => setEndDate(e.target.value)}
-                      className="w-full p-3 bg-slate-50 border border-slate-100 rounded-xl text-sm font-medium outline-none"
-                    />
-                    <input 
-                      type="time"
-                      value={endTime}
-                      onChange={(e) => setEndTime(e.target.value)}
-                      className="w-full p-3 bg-slate-50 border border-slate-100 rounded-xl text-sm font-medium outline-none"
-                    />
-                  </div>
-                </div>
+                { !selectedEvent?.allDay && dateSetting() }
 
                 <button 
                   onClick={() => setSelectedEvent(prev => prev ? { ...prev, allDay: !prev.allDay } : null)}
