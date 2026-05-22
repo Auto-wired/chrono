@@ -75,7 +75,7 @@ const Calendar = () => {
     }
   ]);
   
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  // const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<Partial<EventData> | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   
@@ -105,7 +105,7 @@ const Calendar = () => {
     setStartTime(sTime);
     setEndTime(eTime);
     setIsEditing(false);
-    setIsSidebarOpen(true);
+    // setIsSidebarOpen(true);
   }, []);
 
   const handleEventClick = useCallback((clickInfo: EventClickArg) => {
@@ -123,7 +123,7 @@ const Calendar = () => {
       allDay: clickInfo.event.allDay,
     });
     setIsEditing(true);
-    setIsSidebarOpen(true);
+    // setIsSidebarOpen(true);
   }, []);
 
   const handleEventChange = useCallback((changeInfo: EventChangeArg) => {
@@ -137,12 +137,12 @@ const Calendar = () => {
     ));
   }, []);
 
-  const closeSidebar = useCallback(() => {
-    setIsSidebarOpen(false);
-    setTimeout(() => {
-      setSelectedEvent(null);
-    }, 300);
-  }, []);
+  // const closeSidebar = useCallback(() => {
+  //   setIsSidebarOpen(false);
+  //   setTimeout(() => {
+  //     setSelectedEvent(null);
+  //   }, 300);
+  // }, []);
 
   const handleSaveEvent = () => {
     if (!selectedEvent?.title || !startDate) return;
@@ -164,13 +164,13 @@ const Calendar = () => {
     } else {
       setEvents(prev => [...prev, newEvent]);
     }
-    closeSidebar();
+    // closeSidebar();
   };
 
   const handleDeleteEvent = () => {
     if (selectedEvent?.id) {
       setEvents(prev => prev.filter(ev => ev.id !== selectedEvent.id));
-      closeSidebar();
+      // closeSidebar();
     }
   };
 
@@ -188,10 +188,7 @@ const Calendar = () => {
 
       {/* 사이드바 영역 - 미리 확보된 공간 내에서 뿅하고 나타남 (달력 영향 0) */}
       <div className="h-full relative">
-        <div className={cn(
-          "h-full w-full bg-white border border-slate-200 rounded-2xl flex flex-col overflow-hidden transition-all duration-300 ease-out",
-          isSidebarOpen ? "translate-y-0 opacity-100 scale-100" : "translate-y-4 opacity-0 scale-95 pointer-events-none"
-        )}>
+        <div className="h-full w-full bg-white border border-slate-200 rounded-2xl flex flex-col overflow-hidden transition-all duration-300 ease-out">
           {selectedEvent ? (
             <div className="flex flex-col h-full p-8 overflow-y-auto">
               <div className="flex justify-between items-start mb-10">
@@ -201,12 +198,12 @@ const Calendar = () => {
                   </h2>
                   <p className="text-slate-500 text-sm font-medium">내용을 입력해 주세요</p>
                 </div>
-                <button 
+                {/* <button 
                   onClick={closeSidebar}
                   className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-400"
                 >
                   <X className="w-6 h-6" />
-                </button>
+                </button> */}
               </div>
               
               <div className="flex-grow space-y-8 pb-8">
