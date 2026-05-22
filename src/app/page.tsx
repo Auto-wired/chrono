@@ -10,7 +10,7 @@ export default async function Home() {
       <div className="mx-auto max-w-[1600px] h-[calc(100vh-5rem)] flex flex-col space-y-6">
         <header className="flex items-center justify-between flex-shrink-0">
           <div>
-            <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Chrono v0.0.3</h1>
+            <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Chrono v0.0.4</h1>
           </div>
           <div className="flex items-center gap-3">
             {session?.user && (
