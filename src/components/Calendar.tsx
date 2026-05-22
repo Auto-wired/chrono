@@ -25,7 +25,7 @@ interface EventData {
 
 const CalendarView = memo(({ events, onDateSelect, onEventClick, onEventChange }: any) => {
   return (
-    <div className="h-full w-full bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden p-6">
+    <div className="h-full w-full bg-white rounded-2xl border border-slate-200 overflow-hidden p-6">
       <FullCalendar
         plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
         initialView="dayGridMonth"
@@ -189,7 +189,7 @@ const Calendar = () => {
       {/* 사이드바 영역 - 미리 확보된 공간 내에서 뿅하고 나타남 (달력 영향 0) */}
       <div className="h-full relative">
         <div className={cn(
-          "h-full w-full bg-white border border-slate-200 rounded-2xl shadow-xl flex flex-col overflow-hidden transition-all duration-300 ease-out",
+          "h-full w-full bg-white border border-slate-200 rounded-2xl flex flex-col overflow-hidden transition-all duration-300 ease-out",
           isSidebarOpen ? "translate-y-0 opacity-100 scale-100" : "translate-y-4 opacity-0 scale-95 pointer-events-none"
         )}>
           {selectedEvent ? (
