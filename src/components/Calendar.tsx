@@ -31,9 +31,9 @@ const CalendarView = memo(({ events, onDateSelect, onEventClick, onEventChange }
         initialView="dayGridMonth"
         events={events}
         headerToolbar={{
-          left: 'prev,next today',
+          left: 'prev next today',
           center: 'title',
-          right: 'dayGridMonth,timeGridWeek,timeGridDay',
+          right: 'dayGridMonth timeGridWeek timeGridDay',
         }}
         editable={true}
         selectable={true}
@@ -41,6 +41,7 @@ const CalendarView = memo(({ events, onDateSelect, onEventClick, onEventChange }
         dayMaxEvents={true}
         weekends={true}
         locale="ko"
+        unselectAuto={false}
         select={onDateSelect}
         eventClick={onEventClick}
         eventChange={onEventChange}
@@ -63,29 +64,22 @@ const CalendarView = memo(({ events, onDateSelect, onEventClick, onEventChange }
 
 CalendarView.displayName = 'CalendarView';
 
-const Calendar = () => {
-  const [events, setEvents] = useState<EventData[]>([
-    { 
-      id: '1', 
-      title: '프로젝트 미팅', 
-      start: `${new Date().toISOString().split('T')[0]}T10:00:00`, 
-      end: `${new Date().toISOString().split('T')[0]}T11:30:00`,
-      allDay: false, 
-      backgroundColor: '#3b82f6' 
-    }
-  ]);
-  
+import { createEvent, updateEvent, deleteEvent } from '@/lib/actions';
+
+const Calendar = ({ initialEvents = [] }: { initialEvents?: EventData[] }) => {
+  const now = new Date();
+  const date = `${ now.getFullYear() }-${ `${ now.getMonth() + 1 }`.padStart(2, "0") }-${ `${ now.getDate() }`.padStart(2, "0") }`;
+  const [events, setEvents] = useState<EventData[]>(initialEvents);
   const [selectedEvent, setSelectedEvent] = useState<Partial<EventData> | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [startTime, setStartTime] = useState('09:00');
   const [endTime, setEndTime] = useState('10:00');
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
+  const [startDate, setStartDate] = useState(date);
+  const [endDate, setEndDate] = useState(date);
+  const [allDay, setAllDay] = useState(false);
 
   const handleDateSelect = useCallback((selectInfo: DateSelectArg) => {
     const sDate = selectInfo.startStr.split('T')[0];
-    const eDate = selectInfo.endStr ? selectInfo.endStr.split('T')[0] : sDate;
-    
     const sTime = selectInfo.startStr.includes('T') 
       ? selectInfo.startStr.split('T')[1].substring(0, 5) 
       : '09:00';
@@ -96,10 +90,9 @@ const Calendar = () => {
     setSelectedEvent({
       id: Math.random().toString(36).substr(2, 9),
       title: '',
-      allDay: selectInfo.allDay,
     });
     setStartDate(sDate);
-    setEndDate(eDate);
+    setEndDate(sDate);
     setStartTime(sTime);
     setEndTime(eTime);
     setIsEditing(false);
@@ -113,51 +106,70 @@ const Calendar = () => {
     setEndDate(ePart.split('T')[0]);
     setStartTime(sPart.includes('T') ? sPart.split('T')[1].substring(0, 5) : '09:00');
     setEndTime(ePart.includes('T') ? ePart.split('T')[1].substring(0, 5) : '10:00');
-
     setSelectedEvent({
       id: clickInfo.event.id,
       title: clickInfo.event.title,
-      allDay: clickInfo.event.allDay,
     });
     setIsEditing(true);
   }, []);
 
-  const handleEventChange = useCallback((changeInfo: EventChangeArg) => {
+  const handleEventChange = useCallback(async (changeInfo: EventChangeArg) => {
+    const updated = {
+      start: changeInfo.event.startStr,
+      end: changeInfo.event.endStr || changeInfo.event.startStr,
+    };
+    
     setEvents(prev => prev.map(ev => 
-      ev.id === changeInfo.event.id ? {
-        ...ev,
-        start: changeInfo.event.startStr,
-        end: changeInfo.event.endStr || changeInfo.event.startStr,
-        allDay: changeInfo.event.allDay
-      } : ev
+      ev.id === changeInfo.event.id ? { ...ev, ...updated } : ev
     ));
+
+    try {
+      await updateEvent(changeInfo.event.id, updated);
+    } catch (error) {
+      console.error('Failed to update event:', error);
+      // Optional: rollback UI state
+    }
   }, []);
 
-  const handleSaveEvent = () => {
+  const handleSaveEvent = async () => {
     if (!selectedEvent?.title || !startDate) return;
 
-    const fullStart = selectedEvent.allDay ? startDate : `${startDate}T${startTime}:00`;
-    const fullEnd = selectedEvent.allDay ? (endDate || startDate) : `${endDate || startDate}T${endTime}:00`;
-
-    const newEvent: EventData = {
-      id: selectedEvent.id || Math.random().toString(36).substr(2, 9),
+    const fullStart = allDay ? startDate : `${startDate}T${startTime}:00`;
+    const fullEnd = allDay ? startDate : `${endDate}T${endTime}:00`;
+    
+    const eventData = {
       title: selectedEvent.title,
       start: fullStart,
       end: fullEnd,
-      allDay: selectedEvent.allDay || false,
+      allDay: allDay,
       backgroundColor: isEditing ? (selectedEvent.backgroundColor || '#3b82f6') : '#3b82f6',
     };
 
-    if (isEditing) {
-      setEvents(prev => prev.map(ev => ev.id === newEvent.id ? newEvent : ev));
-    } else {
-      setEvents(prev => [...prev, newEvent]);
+    try {
+      if (isEditing && selectedEvent.id) {
+        const updatedEvent = await updateEvent(selectedEvent.id, eventData);
+        setEvents(prev => prev.map(ev => ev.id === selectedEvent.id ? (updatedEvent as EventData) : ev));
+      } else {
+        const createdEvent = await createEvent(eventData);
+        setEvents(prev => [...prev, createdEvent as EventData]);
+      }
+      setSelectedEvent(null);
+      setIsEditing(false);
+    } catch (error) {
+      console.error('Failed to save event:', error);
     }
   };
 
-  const handleDeleteEvent = () => {
+  const handleDeleteEvent = async () => {
     if (selectedEvent?.id) {
-      setEvents(prev => prev.filter(ev => ev.id !== selectedEvent.id));
+      try {
+        await deleteEvent(selectedEvent.id);
+        setEvents(prev => prev.filter(ev => ev.id !== selectedEvent.id));
+        setSelectedEvent(null);
+        setIsEditing(false);
+      } catch (error) {
+        console.error('Failed to delete event:', error);
+      }
     }
   };
 
@@ -218,77 +230,68 @@ const Calendar = () => {
       {/* 사이드바 영역 - 미리 확보된 공간 내에서 뿅하고 나타남 (달력 영향 0) */}
       <div className="h-full relative">
         <div className="h-full w-full bg-white border border-slate-200 rounded-2xl flex flex-col overflow-hidden transition-all duration-300 ease-out">
-          {selectedEvent ? (
-            <div className="flex flex-col h-full p-8 overflow-y-auto">
-              <div className="flex justify-between items-start mb-10">
-                <div className="space-y-1">
-                  <h2 className="text-2xl font-bold text-slate-900 tracking-tight">
-                    {isEditing ? '일정 수정' : '새 일정 추가'}
-                  </h2>
-                  <p className="text-slate-500 text-sm font-medium">내용을 입력해 주세요</p>
-                </div>
+          
+          <div className="flex flex-col h-full p-8 overflow-y-auto">
+            <div className="flex justify-between items-start mb-10">
+              <div className="space-y-1">
+                <h2 className="text-2xl font-bold text-slate-900 tracking-tight">
+                  {isEditing ? '일정 수정' : '새 일정 추가'}
+                </h2>
+                <p className="text-slate-500 text-sm font-medium">내용을 입력해 주세요</p>
               </div>
+            </div>
+            
+            <div className="flex-grow space-y-8 pb-8">
+              <div className="space-y-2">
+                <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">일정 제목</label>
+                <input 
+                  type="text" 
+                  value={selectedEvent?.title || ''}
+                  onChange={(e) => setSelectedEvent(prev => prev ? { ...prev, title: e.target.value } : null)}
+                  className="w-full text-lg font-semibold p-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all text-slate-800"
+                  placeholder="제목 입력"
+                  autoFocus
+                />
+              </div>
+
+              <button 
+                onClick={() => setAllDay(prev => !prev)}
+                className="flex items-center gap-3 group"
+              >
+                <div className={cn(
+                  "w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all",
+                  allDay ? "bg-blue-500 border-blue-500" : "border-slate-200"
+                )}>
+                  {allDay && <Check className="w-4 h-4 text-white" />}
+                </div>
+                <span className="text-sm font-bold text-slate-600">하루 종일</span>
+              </button>
+
+              { !allDay && dateSetting() }
+
+            </div>
+
+            <div className="mt-auto pt-8 space-y-4 border-t border-slate-100">
+              <button 
+                onClick={handleSaveEvent}
+                disabled={!selectedEvent?.title}
+                className="w-full bg-slate-900 text-white py-4 rounded-2xl hover:bg-slate-800 transition-all font-bold text-base shadow-lg shadow-slate-200"
+              >
+                {isEditing ? '변경사항 저장' : '일정 추가'}
+              </button>
               
-              <div className="flex-grow space-y-8 pb-8">
-                <div className="space-y-2">
-                  <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">일정 제목</label>
-                  <input 
-                    type="text" 
-                    value={selectedEvent?.title || ''}
-                    onChange={(e) => setSelectedEvent(prev => prev ? { ...prev, title: e.target.value } : null)}
-                    className="w-full text-lg font-semibold p-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all text-slate-800"
-                    placeholder="제목 입력"
-                    autoFocus
-                  />
-                </div>
-
-                { !selectedEvent?.allDay && dateSetting() }
-
+              {isEditing && (
                 <button 
-                  onClick={() => setSelectedEvent(prev => prev ? { ...prev, allDay: !prev.allDay } : null)}
-                  className="flex items-center gap-3 group"
+                  onClick={handleDeleteEvent}
+                  className="w-full flex items-center justify-center gap-2 text-red-500 py-4 rounded-2xl hover:bg-red-50 transition-all font-bold text-sm"
                 >
-                  <div className={cn(
-                    "w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all",
-                    selectedEvent?.allDay ? "bg-blue-500 border-blue-500" : "border-slate-200"
-                  )}>
-                    {selectedEvent?.allDay && <Check className="w-4 h-4 text-white" />}
-                  </div>
-                  <span className="text-sm font-bold text-slate-600">하루 종일</span>
+                  <Trash2 className="w-4 h-4" />
+                  삭제하기
                 </button>
-              </div>
-
-              <div className="mt-auto pt-8 space-y-4 border-t border-slate-100">
-                <button 
-                  onClick={handleSaveEvent}
-                  disabled={!selectedEvent?.title}
-                  className="w-full bg-slate-900 text-white py-4 rounded-2xl hover:bg-slate-800 transition-all font-bold text-base shadow-lg shadow-slate-200"
-                >
-                  {isEditing ? '변경사항 저장' : '일정 추가'}
-                </button>
-                
-                {isEditing && (
-                  <button 
-                    onClick={handleDeleteEvent}
-                    className="w-full flex items-center justify-center gap-2 text-red-500 py-4 rounded-2xl hover:bg-red-50 transition-all font-bold text-sm"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                    삭제하기
-                  </button>
-                )}
-              </div>
+              )}
             </div>
-          ) : (
-            <div className="h-full flex flex-col items-center justify-center p-8 text-center space-y-4 bg-slate-50/50">
-              <div className="w-16 h-16 bg-white rounded-2xl shadow-sm flex items-center justify-center border border-slate-100">
-                <Clock className="w-8 h-8 text-slate-300" />
-              </div>
-              <div>
-                <p className="text-slate-900 font-bold">일정을 선택해 주세요</p>
-                <p className="text-slate-400 text-sm mt-1">달력의 빈 칸을 누르거나<br/>기존 일정을 클릭해 보세요</p>
-              </div>
-            </div>
-          )}
+          </div>
+          
         </div>
       </div>
 

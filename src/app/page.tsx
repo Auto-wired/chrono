@@ -1,16 +1,18 @@
 import Calendar from "@/components/Calendar";
 import { signOut, auth } from "@/auth";
 import { Calendar as CalendarIcon } from "lucide-react";
+import { getEvents } from "@/lib/actions";
 
 export default async function Home() {
   const session = await auth();
+  const events = session ? await getEvents() : [];
 
   return (
     <main className="min-h-screen bg-[#f8fafc] p-6 lg:p-10">
       <div className="mx-auto max-w-[1600px] h-[calc(100vh-5rem)] flex flex-col space-y-6">
         <header className="flex items-center justify-between flex-shrink-0">
           <div>
-            <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Chrono v0.0.4</h1>
+            <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Chrono v0.0.5</h1>
           </div>
           <div className="flex items-center gap-3">
             {session?.user && (
@@ -33,7 +35,7 @@ export default async function Home() {
         </header>
         
         <div className="flex-grow min-h-0 relative">
-          <Calendar />
+          <Calendar initialEvents={events} />
         </div>
       </div>
     </main>
