@@ -2,25 +2,50 @@
 
 import Link from 'next/link';
 import { Calendar, UserPlus } from 'lucide-react';
-import { useFormStatus } from 'react-dom';
-import { useActionState } from 'react';
+import { useState } from 'react';
 import { signup } from '@/app/actions';
+import { isNextRedirect } from '@/lib/next-navigation';
 
-function SignupButton() {
-  const { pending } = useFormStatus();
-  return (
-    <button 
-      type="submit"
-      className="w-full bg-slate-900 text-white py-4 rounded-2xl font-bold text-lg hover:bg-slate-800 transition-all shadow-lg shadow-slate-200 mt-4 disabled:opacity-50 disabled:cursor-not-allowed"
-      aria-disabled={pending}
-    >
-      {pending ? '회원가입 중...' : '회원가입 완료'}
-    </button>
-  );
-}
+type SignupState = {
+  errors?: {
+    nickname?: string[];
+    userId?: string[];
+    password?: string[];
+    passwordConfirm?: string[];
+  };
+  message?: string;
+};
 
 export default function SignupPage() {
-  const [state, dispatch] = useActionState(signup, undefined);
+  const [state, setState] = useState<SignupState | undefined>();
+  const [isPending, setIsPending] = useState(false);
+  const [nickname, setNickname] = useState('');
+  const [userId, setUserId] = useState('');
+  const [password, setPassword] = useState('');
+  const [passwordConfirm, setPasswordConfirm] = useState('');
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setIsPending(true);
+    setState(undefined);
+
+    const formData = new FormData();
+    formData.set('nickname', nickname);
+    formData.set('userId', userId);
+    formData.set('password', password);
+    formData.set('passwordConfirm', passwordConfirm);
+
+    try {
+      const result = await signup(undefined, formData);
+      if (result) setState(result);
+    } catch (error) {
+      if (isNextRedirect(error)) throw error;
+      console.error('회원가입 처리 오류:', error);
+      setState({ message: '회원가입에 실패했습니다. 다시 시도해 주세요.', errors: {} });
+    } finally {
+      setIsPending(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[#f8fafc] flex flex-col items-center justify-center p-6">
@@ -42,14 +67,17 @@ export default function SignupPage() {
             <p className="text-sm text-slate-400">필요한 정보를 입력하여 시작하세요</p>
           </div>
 
-          <form action={dispatch} className="space-y-5">
+          <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-2">
               <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest ml-1">닉네임</label>
-              <input 
-                type="text" 
+              <input
+                type="text"
                 placeholder="사용하실 닉네임을 입력하세요"
                 name="nickname"
+                value={nickname}
+                onChange={(e) => setNickname(e.target.value)}
                 required
+                autoComplete="nickname"
                 className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-slate-500/5 focus:border-slate-900 outline-none transition-all text-slate-800 placeholder:text-slate-300 font-medium"
               />
               {state?.errors?.nickname && (
@@ -59,11 +87,14 @@ export default function SignupPage() {
 
             <div className="space-y-2">
               <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest ml-1">아이디</label>
-              <input 
-                type="text" 
+              <input
+                type="text"
                 placeholder="로그인에 사용할 아이디를 입력하세요"
                 name="userId"
+                value={userId}
+                onChange={(e) => setUserId(e.target.value)}
                 required
+                autoComplete="username"
                 className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-slate-500/5 focus:border-slate-900 outline-none transition-all text-slate-800 placeholder:text-slate-300 font-medium"
               />
               {state?.errors?.userId && (
@@ -77,7 +108,10 @@ export default function SignupPage() {
                 type="password"
                 placeholder="비밀번호"
                 name="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 required
+                autoComplete="new-password"
                 className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-slate-500/5 focus:border-slate-900 outline-none transition-all text-slate-800 placeholder:text-slate-300 font-medium"
               />
               {state?.errors?.password && (
@@ -91,7 +125,10 @@ export default function SignupPage() {
                 type="password"
                 placeholder="다시 입력"
                 name="passwordConfirm"
+                value={passwordConfirm}
+                onChange={(e) => setPasswordConfirm(e.target.value)}
                 required
+                autoComplete="new-password"
                 className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-slate-500/5 focus:border-slate-900 outline-none transition-all text-slate-800 placeholder:text-slate-300 font-medium"
               />
               {state?.errors?.passwordConfirm && (
@@ -109,8 +146,13 @@ export default function SignupPage() {
               </div>
             )}
 
-            <SignupButton />
-
+            <button
+              type="submit"
+              disabled={isPending}
+              className="w-full bg-slate-900 text-white py-4 rounded-2xl font-bold text-lg hover:bg-slate-800 transition-all shadow-lg shadow-slate-200 mt-4 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isPending ? '회원가입 중...' : '회원가입 완료'}
+            </button>
           </form>
 
           <div className="pt-2 text-center">

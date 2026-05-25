@@ -12,7 +12,21 @@ import { findMatchingEvents, pickSingleEvent } from '@/lib/schedule-match';
 import { computeRescheduledTimes } from '@/lib/schedule-reschedule';
 import { todayKstDate, resolveTargetDate, buildWeekCalendarHint } from '@/lib/kst-date';
 import { auth } from '@/auth';
+import {
+  DEFAULT_EVENT_COLOR,
+  EVENT_COLOR_NAMES,
+  formatPaletteForPrompt,
+  resolveEventColor,
+} from '@/lib/event-colors';
 import { z } from 'zod';
+
+function stripColorName<T extends { colorName?: string }>(
+  data: T
+): Omit<T, 'colorName'> & { backgroundColor?: string } {
+  const { colorName, ...rest } = data;
+  if (!colorName) return rest;
+  return { ...rest, backgroundColor: resolveEventColor(colorName) };
+}
 
 const matchedEventFields = {
   titleContains: z.string().describe('대상 일정 제목 키워드 (예: "출근", "퇴근"). 사용자가 말한 일정만 넣을 것'),
@@ -28,7 +42,12 @@ const eventUpdateFields = {
   start: z.string().optional().describe('새로운 시작 시간 (KST ISO)'),
   end: z.string().optional().describe('새로운 종료 시간 (KST ISO)'),
   allDay: z.boolean().optional().describe('하루 종일 여부'),
-  backgroundColor: z.string().optional().describe('배경 색상 (Hex)'),
+  colorName: z
+    .enum(EVENT_COLOR_NAMES)
+    .optional()
+    .describe(
+      `일정 색상 이름. 반드시 다음 중 하나만: ${EVENT_COLOR_NAMES.join(', ')}. 색 지정 없으면 생략.`
+    ),
 };
 
 export async function scheduleAction(
@@ -78,7 +97,12 @@ ${weekHint}
 5. 시간만 바꿀 때: updateMatchedEvent + start/end 명시.
 6. getEvents로 확인 후 한 건만 처리.
 
-[시간 형식] KST ISO (예: ${today}T08:00:00+09:00)`,
+[시간 형식] KST ISO (예: ${today}T08:00:00+09:00)
+
+[색상 규칙 — UI와 동일한 고정 팔레트만 사용]
+- colorName만 사용: ${EVENT_COLOR_NAMES.join(', ')}
+- 매핑: ${formatPaletteForPrompt()}
+- 색 지정 없으면 colorName 생략 (기본 ${DEFAULT_EVENT_COLOR})`,
       stopWhen: stepCountIs(7),
       tools: {
         getEvents: tool({
@@ -100,11 +124,16 @@ ${weekHint}
             start: z.string().describe('시작 시간 (KST ISO)'),
             end: z.string().describe('종료 시간 (KST ISO)'),
             allDay: z.boolean().default(false).describe('하루 종일 여부'),
-            backgroundColor: z.string().optional().describe('배경 색상 (Hex)'),
+            colorName: z
+              .enum(EVENT_COLOR_NAMES)
+              .optional()
+              .describe(
+                `색상 이름. ${EVENT_COLOR_NAMES.join(', ')} 중 하나. 미지정 시 기본색.`
+              ),
           }),
           execute: async (args): Promise<unknown> => {
             try {
-              return await createEvent(args, userId);
+              return await createEvent(stripColorName(args), userId);
             } catch (e) {
               return { error: e instanceof Error ? e.message : '일정 추가 실패' };
             }
@@ -160,8 +189,10 @@ ${weekHint}
               const picked = pickSingleEvent(candidates, titleContains);
               if ('error' in picked) return picked;
 
-              const payload = Object.fromEntries(
-                Object.entries(updates).filter(([, v]) => v !== undefined)
+              const payload = stripColorName(
+                Object.fromEntries(
+                  Object.entries(updates).filter(([, v]) => v !== undefined)
+                ) as { colorName?: string } & Record<string, unknown>
               );
               if (Object.keys(payload).length === 0) {
                 return { error: '변경할 내용이 없습니다.' };
@@ -198,7 +229,7 @@ ${weekHint}
           }),
           execute: async ({ id, ...data }): Promise<unknown> => {
             try {
-              return await updateEvent(id, data, userId);
+              return await updateEvent(id, stripColorName(data), userId);
             } catch (e) {
               return { error: e instanceof Error ? e.message : '일정 수정 실패' };
             }

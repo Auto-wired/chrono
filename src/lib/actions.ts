@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
 import { revalidatePath } from "next/cache";
 import { parseScheduleDateTime, formatScheduleDateTime } from "@/lib/datetime";
+import { DEFAULT_EVENT_COLOR, normalizeStoredColor, resolveEventColor } from "@/lib/event-colors";
 
 export async function getEvents(overrideUserId?: string) {
   let finalUserId = overrideUserId;
@@ -31,7 +32,7 @@ export async function getEvents(overrideUserId?: string) {
     start: formatScheduleDateTime(event.start, event.allDay),
     end: formatScheduleDateTime(event.end, event.allDay),
     allDay: event.allDay,
-    backgroundColor: event.backgroundColor || '#3b82f6',
+    backgroundColor: normalizeStoredColor(event.backgroundColor),
   }));
 }
 
@@ -63,7 +64,7 @@ export async function createEvent(data: {
       start: parseScheduleDateTime(data.start),
       end: parseScheduleDateTime(data.end),
       allDay: data.allDay,
-      backgroundColor: data.backgroundColor,
+      backgroundColor: resolveEventColor(undefined, data.backgroundColor),
       userId: user.userId
     }
   });
@@ -99,6 +100,9 @@ export async function updateEvent(id: string, data: {
   const updateData: Record<string, unknown> = { ...data };
   if (data.description !== undefined) {
     updateData.description = data.description.trim() || null;
+  }
+  if (data.backgroundColor !== undefined) {
+    updateData.backgroundColor = resolveEventColor(undefined, data.backgroundColor);
   }
   if (data.start) updateData.start = parseScheduleDateTime(data.start);
   if (data.end) updateData.end = parseScheduleDateTime(data.end);

@@ -2,25 +2,35 @@
 
 import Link from 'next/link';
 import { Calendar } from 'lucide-react';
-import { useFormStatus } from 'react-dom';
-import { useActionState } from 'react';
+import { useState } from 'react';
 import { authenticate } from '@/app/actions';
-
-function LoginButton() {
-  const { pending } = useFormStatus();
-  return (
-    <button 
-      type="submit"
-      className="w-full bg-slate-900 text-white py-4 rounded-2xl font-bold text-lg hover:bg-slate-800 transition-all shadow-lg shadow-slate-200 mt-2 disabled:opacity-50 disabled:cursor-not-allowed"
-      aria-disabled={pending}
-    >
-      {pending ? '로그인 중...' : '로그인'}
-    </button>
-  );
-}
+import { isNextRedirect } from '@/lib/next-navigation';
 
 export default function LoginPage() {
-  const [errorMessage, dispatch] = useActionState(authenticate, undefined);
+  const [errorMessage, setErrorMessage] = useState<string | undefined>();
+  const [isPending, setIsPending] = useState(false);
+  const [userId, setUserId] = useState('');
+  const [password, setPassword] = useState('');
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setIsPending(true);
+    setErrorMessage(undefined);
+
+    const formData = new FormData();
+    formData.set('userId', userId);
+    formData.set('password', password);
+
+    try {
+      const result = await authenticate(undefined, formData);
+      if (result) setErrorMessage(result);
+    } catch (error) {
+      if (isNextRedirect(error)) throw error;
+      setErrorMessage('로그인에 실패했습니다. 다시 시도해 주세요.');
+    } finally {
+      setIsPending(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[#f8fafc] flex flex-col items-center justify-center p-6">
@@ -39,30 +49,42 @@ export default function LoginPage() {
             <p className="text-sm text-slate-400">계정에 로그인하여 일정을 관리하세요</p>
           </div>
 
-          <form action={dispatch} className="space-y-5">
+          <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-2">
               <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest ml-1">아이디</label>
-              <input 
-                type="text" 
+              <input
+                type="text"
                 placeholder="아이디를 입력하세요"
                 name="userId"
+                value={userId}
+                onChange={(e) => setUserId(e.target.value)}
                 required
+                autoComplete="username"
                 className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-slate-500/5 focus:border-slate-900 outline-none transition-all text-slate-800 placeholder:text-slate-300"
               />
             </div>
 
             <div className="space-y-2">
               <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest ml-1">비밀번호</label>
-              <input 
-                type="password" 
+              <input
+                type="password"
                 placeholder="비밀번호를 입력하세요"
                 name="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 required
+                autoComplete="current-password"
                 className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-slate-500/5 focus:border-slate-900 outline-none transition-all text-slate-800 placeholder:text-slate-300"
               />
             </div>
 
-            <LoginButton />
+            <button
+              type="submit"
+              disabled={isPending}
+              className="w-full bg-slate-900 text-white py-4 rounded-2xl font-bold text-lg hover:bg-slate-800 transition-all shadow-lg shadow-slate-200 mt-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isPending ? '로그인 중...' : '로그인'}
+            </button>
 
             {errorMessage && (
               <div className="text-red-500 text-center text-sm font-medium mt-4">

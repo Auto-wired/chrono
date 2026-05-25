@@ -66,7 +66,7 @@ const CalendarView = memo(({ events, onDateSelect, onEventClick, onEventChange }
 CalendarView.displayName = 'CalendarView';
 
 import { getEvents, createEvent, updateEvent, deleteEvent } from '@/lib/actions';
-import { DEFAULT_EVENT_COLOR, EVENT_COLORS } from '@/lib/event-colors';
+import { DEFAULT_EVENT_COLOR, EVENT_COLORS, normalizeStoredColor } from '@/lib/event-colors';
 
 const Calendar = () => {
   const now = new Date();
@@ -129,7 +129,7 @@ const Calendar = () => {
 
     setTitle(clickInfo.event.title);
     setDescription(stored?.description ?? '');
-    setColor(stored?.backgroundColor ?? DEFAULT_EVENT_COLOR);
+    setColor(normalizeStoredColor(stored?.backgroundColor));
     setStartDate(sPart.split('T')[0]);
     setEndDate(ePart.split('T')[0]);
     setStartTime(sPart.includes('T') ? sPart.split('T')[1].substring(0, 5) : '09:00');
