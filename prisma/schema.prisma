@@ -19,6 +19,7 @@ model User {
 model Event {
   id              String   @id @default(cuid())
   title           String
+  description     String?  @db.Text
   start           DateTime
   end             DateTime
   allDay          Boolean  @default(false)

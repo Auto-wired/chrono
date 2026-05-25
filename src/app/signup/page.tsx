@@ -71,38 +71,40 @@ export default function SignupPage() {
               )}
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest ml-1">비밀번호</label>
-                <input 
-                  type="password" 
-                  placeholder="비밀번호"
-                  name="password"
-                  required
-                  className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-slate-500/5 focus:border-slate-900 outline-none transition-all text-slate-800 placeholder:text-slate-300 font-medium"
-                />
-                {state?.errors?.password && (
-                  <p className="text-red-500 text-xs mt-1 ml-1">{state.errors.password[0]}</p>
-                )}
-              </div>
-              <div className="space-y-2">
-                <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest ml-1">비밀번호 확인</label>
-                <input 
-                  type="password" 
-                  placeholder="다시 입력"
-                  name="passwordConfirm"
-                  required
-                  className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-slate-500/5 focus:border-slate-900 outline-none transition-all text-slate-800 placeholder:text-slate-300 font-medium"
-                />
-                {state?.errors?.passwordConfirm && (
-                  <p className="text-red-500 text-xs mt-1 ml-1">{state.errors.passwordConfirm[0]}</p>
-                )}
-              </div>
+            <div className="space-y-2">
+              <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest ml-1">비밀번호</label>
+              <input
+                type="password"
+                placeholder="비밀번호"
+                name="password"
+                required
+                className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-slate-500/5 focus:border-slate-900 outline-none transition-all text-slate-800 placeholder:text-slate-300 font-medium"
+              />
+              {state?.errors?.password && (
+                <p className="text-red-500 text-xs mt-1 ml-1">{state.errors.password[0]}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest ml-1">비밀번호 확인</label>
+              <input
+                type="password"
+                placeholder="다시 입력"
+                name="passwordConfirm"
+                required
+                className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-slate-500/5 focus:border-slate-900 outline-none transition-all text-slate-800 placeholder:text-slate-300 font-medium"
+              />
+              {state?.errors?.passwordConfirm && (
+                <p className="text-red-500 text-xs mt-1 ml-1">{state.errors.passwordConfirm[0]}</p>
+              )}
             </div>
 
             {state?.message && !state?.errors?.userId && (
-              <div className="text-center text-sm font-medium mt-4 
-              ${state?.message.includes('성공') ? 'text-green-500' : 'text-red-500'}">
+              <div
+                className={`text-center text-sm font-medium mt-4 ${
+                  state.message.includes('성공') ? 'text-green-500' : 'text-red-500'
+                }`}
+              >
                 {state.message}
               </div>
             )}

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback, memo } from 'react';
+import React, { useState, useCallback, memo, useEffect } from 'react';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
@@ -17,6 +17,7 @@ function cn(...inputs: ClassValue[]) {
 interface EventData {
   id: string;
   title: string;
+  description?: string;
   start: string;
   end: string;
   allDay: boolean;
@@ -64,14 +65,18 @@ const CalendarView = memo(({ events, onDateSelect, onEventClick, onEventChange }
 
 CalendarView.displayName = 'CalendarView';
 
-import { createEvent, updateEvent, deleteEvent } from '@/lib/actions';
+import { getEvents, createEvent, updateEvent, deleteEvent } from '@/lib/actions';
+import { DEFAULT_EVENT_COLOR, EVENT_COLORS } from '@/lib/event-colors';
 
-const Calendar = ({ initialEvents = [] }: { initialEvents?: EventData[] }) => {
+const Calendar = () => {
   const now = new Date();
   const date = `${ now.getFullYear() }-${ `${ now.getMonth() + 1 }`.padStart(2, "0") }-${ `${ now.getDate() }`.padStart(2, "0") }`;
-  const [events, setEvents] = useState<EventData[]>(initialEvents);
+  const [events, setEvents] = useState<EventData[]>([]);
   const [selectedEvent, setSelectedEvent] = useState<Partial<EventData> | null>(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [color, setColor] = useState(DEFAULT_EVENT_COLOR);
   const [startTime, setStartTime] = useState('09:00');
   const [endTime, setEndTime] = useState('10:00');
   const [startDate, setStartDate] = useState(date);
@@ -91,27 +96,53 @@ const Calendar = ({ initialEvents = [] }: { initialEvents?: EventData[] }) => {
       id: Math.random().toString(36).substr(2, 9),
       title: '',
     });
+    setTitle("");
+    setDescription("");
+    setColor(DEFAULT_EVENT_COLOR);
     setStartDate(sDate);
     setEndDate(sDate);
     setStartTime(sTime);
     setEndTime(eTime);
+    setAllDay(false);
     setIsEditing(false);
+  }, []);
+
+  useEffect(() => {
+    handleEventReload();
+
+    window.addEventListener("calendarReload", handleEventReload);
+
+    return () => {
+      window.removeEventListener("calendarReload", handleEventReload);
+    };
+  }, []);
+
+  const handleEventReload = useCallback(async () => {
+    setEvents(await getEvents());
   }, []);
 
   const handleEventClick = useCallback((clickInfo: EventClickArg) => {
     const sPart = clickInfo.event.startStr;
     const ePart = clickInfo.event.endStr || sPart;
-    
+    const stored = events.find((ev) => ev.id === clickInfo.event.id);
+    const isAllDay = clickInfo.event.allDay ?? stored?.allDay ?? false;
+
+    setTitle(clickInfo.event.title);
+    setDescription(stored?.description ?? '');
+    setColor(stored?.backgroundColor ?? DEFAULT_EVENT_COLOR);
     setStartDate(sPart.split('T')[0]);
     setEndDate(ePart.split('T')[0]);
     setStartTime(sPart.includes('T') ? sPart.split('T')[1].substring(0, 5) : '09:00');
     setEndTime(ePart.includes('T') ? ePart.split('T')[1].substring(0, 5) : '10:00');
+    setAllDay(isAllDay);
     setSelectedEvent({
       id: clickInfo.event.id,
-      title: clickInfo.event.title,
+      backgroundColor: stored?.backgroundColor,
+      allDay: isAllDay,
+      description: stored?.description,
     });
     setIsEditing(true);
-  }, []);
+  }, [events]);
 
   const handleEventChange = useCallback(async (changeInfo: EventChangeArg) => {
     const updated = {
@@ -132,25 +163,26 @@ const Calendar = ({ initialEvents = [] }: { initialEvents?: EventData[] }) => {
   }, []);
 
   const handleSaveEvent = async () => {
-    if (!selectedEvent?.title || !startDate) return;
+    if (!title || !startDate) return;
 
     const fullStart = allDay ? startDate : `${startDate}T${startTime}:00`;
     const fullEnd = allDay ? startDate : `${endDate}T${endTime}:00`;
-    
     const eventData = {
-      title: selectedEvent.title,
+      title: title,
+      description: description.trim() || undefined,
       start: fullStart,
       end: fullEnd,
       allDay: allDay,
-      backgroundColor: isEditing ? (selectedEvent.backgroundColor || '#3b82f6') : '#3b82f6',
+      backgroundColor: color,
     };
-
     try {
-      if (isEditing && selectedEvent.id) {
+      if (isEditing && selectedEvent?.id) {
         const updatedEvent = await updateEvent(selectedEvent.id, eventData);
+
         setEvents(prev => prev.map(ev => ev.id === selectedEvent.id ? (updatedEvent as EventData) : ev));
       } else {
         const createdEvent = await createEvent(eventData);
+
         setEvents(prev => [...prev, createdEvent as EventData]);
       }
       setSelectedEvent(null);
@@ -246,12 +278,43 @@ const Calendar = ({ initialEvents = [] }: { initialEvents?: EventData[] }) => {
                 <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">일정 제목</label>
                 <input 
                   type="text" 
-                  value={selectedEvent?.title || ''}
-                  onChange={(e) => setSelectedEvent(prev => prev ? { ...prev, title: e.target.value } : null)}
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
                   className="w-full text-lg font-semibold p-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all text-slate-800"
                   placeholder="제목 입력"
                   autoFocus
                 />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">일정 내용</label>
+                <textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  rows={4}
+                  className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all text-slate-800 text-sm resize-none"
+                  placeholder="메모, 장소, 참석자 등"
+                />
+              </div>
+
+              <div className="space-y-3">
+                <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">일정 색상</label>
+                <div className="flex flex-wrap gap-2">
+                  {EVENT_COLORS.map((c) => (
+                    <button
+                      key={c.value}
+                      type="button"
+                      title={c.name}
+                      onClick={() => setColor(c.value)}
+                      className={cn(
+                        'h-9 w-9 rounded-full border-2 transition-all',
+                        color === c.value ? 'border-slate-900 scale-110' : 'border-transparent hover:scale-105'
+                      )}
+                      style={{ backgroundColor: c.value }}
+                      aria-label={`${c.name} 색상`}
+                    />
+                  ))}
+                </div>
               </div>
 
               <button 
@@ -274,7 +337,7 @@ const Calendar = ({ initialEvents = [] }: { initialEvents?: EventData[] }) => {
             <div className="mt-auto pt-8 space-y-4 border-t border-slate-100">
               <button 
                 onClick={handleSaveEvent}
-                disabled={!selectedEvent?.title}
+                disabled={!title}
                 className="w-full bg-slate-900 text-white py-4 rounded-2xl hover:bg-slate-800 transition-all font-bold text-base shadow-lg shadow-slate-200"
               >
                 {isEditing ? '변경사항 저장' : '일정 추가'}

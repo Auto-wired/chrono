@@ -50,22 +50,15 @@ export async function signup(prevState: any, formData: FormData) {
         nickname,
       },
     });
-
-    // 회원가입 성공 후 자동 로그인
-    await signIn("credentials", { 
-      userId, 
-      password,
-      redirect: false,
-    });
-
-    return { message: "회원가입 성공!", errors: {} };
   } catch (error) {
-    if ((error as any).code === "P2002") { // Unique constraint failed on the `userId`
-        return { message: "이미 존재하는 아이디입니다.", errors: { userId: ["이미 존재하는 아이디입니다."] } };
+    if ((error as { code?: string }).code === "P2002") {
+      return { message: "이미 존재하는 아이디입니다.", errors: { userId: ["이미 존재하는 아이디입니다."] } };
     }
     console.error("회원가입 실패:", error);
     return { message: "회원가입에 실패했습니다. 다시 시도해 주세요.", errors: {} };
   }
+
+  redirect("/login");
 }
 
 export async function authenticate(prevState: any, formData: FormData) {

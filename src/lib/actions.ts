@@ -3,13 +3,18 @@
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
 import { revalidatePath } from "next/cache";
+import { parseScheduleDateTime, formatScheduleDateTime } from "@/lib/datetime";
 
-export async function getEvents() {
-  const session = await auth();
-  if (!session?.user?.id) return [];
+export async function getEvents(overrideUserId?: string) {
+  let finalUserId = overrideUserId;
+  if (!finalUserId) {
+    const session = await auth();
+    finalUserId = session?.user?.id;
+  }
+  if (!finalUserId) return [];
 
   const user = await prisma.user.findUnique({
-    where: { userId: session.user.id }
+    where: { userId: finalUserId }
   });
 
   if (!user) return [];
@@ -22,8 +27,9 @@ export async function getEvents() {
   return events.map(event => ({
     id: event.id,
     title: event.title,
-    start: event.start.toISOString(),
-    end: event.end.toISOString(),
+    description: event.description ?? '',
+    start: formatScheduleDateTime(event.start, event.allDay),
+    end: formatScheduleDateTime(event.end, event.allDay),
     allDay: event.allDay,
     backgroundColor: event.backgroundColor || '#3b82f6',
   }));
@@ -31,16 +37,21 @@ export async function getEvents() {
 
 export async function createEvent(data: {
   title: string;
+  description?: string;
   start: string;
   end: string;
   allDay: boolean;
   backgroundColor?: string;
-}) {
-  const session = await auth();
-  if (!session?.user?.id) throw new Error("인증이 필요합니다.");
+}, overrideUserId?: string) {
+  let finalUserId = overrideUserId;
+  if (!finalUserId) {
+    const session = await auth();
+    finalUserId = session?.user?.id;
+  }
+  if (!finalUserId) throw new Error("인증이 필요합니다.");
 
   const user = await prisma.user.findUnique({
-    where: { userId: session.user.id }
+    where: { userId: finalUserId }
   });
 
   if (!user) throw new Error("사용자를 찾을 수 없습니다.");
@@ -48,8 +59,9 @@ export async function createEvent(data: {
   const event = await prisma.event.create({
     data: {
       title: data.title,
-      start: new Date(data.start),
-      end: new Date(data.end),
+      description: data.description || null,
+      start: parseScheduleDateTime(data.start),
+      end: parseScheduleDateTime(data.end),
       allDay: data.allDay,
       backgroundColor: data.backgroundColor,
       userId: user.userId
@@ -59,45 +71,71 @@ export async function createEvent(data: {
   revalidatePath("/");
   return {
     ...event,
-    start: event.start.toISOString(),
-    end: event.end.toISOString(),
+    start: formatScheduleDateTime(event.start, event.allDay),
+    end: formatScheduleDateTime(event.end, event.allDay),
   };
 }
 
 export async function updateEvent(id: string, data: {
   title?: string;
+  description?: string;
   start?: string;
   end?: string;
   allDay?: boolean;
   backgroundColor?: string;
-}) {
-  const session = await auth();
-  if (!session?.user?.id) throw new Error("인증이 필요합니다.");
+}, overrideUserId?: string) {
+  let finalUserId = overrideUserId;
+  if (!finalUserId) {
+    const session = await auth();
+    finalUserId = session?.user?.id;
+  }
+  if (!finalUserId) throw new Error("인증이 필요합니다.");
 
-  const updateData: any = { ...data };
-  if (data.start) updateData.start = new Date(data.start);
-  if (data.end) updateData.end = new Date(data.end);
-
-  const event = await prisma.event.update({
-    where: { id },
-    data: updateData
+  const user = await prisma.user.findUnique({
+    where: { userId: finalUserId },
   });
+  if (!user) throw new Error("사용자를 찾을 수 없습니다.");
+
+  const updateData: Record<string, unknown> = { ...data };
+  if (data.description !== undefined) {
+    updateData.description = data.description.trim() || null;
+  }
+  if (data.start) updateData.start = parseScheduleDateTime(data.start);
+  if (data.end) updateData.end = parseScheduleDateTime(data.end);
+
+  const updated = await prisma.event.updateMany({
+    where: { id, userId: user.userId },
+    data: updateData,
+  });
+  if (updated.count === 0) throw new Error("일정을 찾을 수 없습니다.");
+
+  const event = await prisma.event.findUniqueOrThrow({ where: { id } });
 
   revalidatePath("/");
   return {
     ...event,
-    start: event.start.toISOString(),
-    end: event.end.toISOString(),
+    start: formatScheduleDateTime(event.start, event.allDay),
+    end: formatScheduleDateTime(event.end, event.allDay),
   };
 }
 
-export async function deleteEvent(id: string) {
-  const session = await auth();
-  if (!session?.user?.id) throw new Error("인증이 필요합니다.");
+export async function deleteEvent(id: string, overrideUserId?: string) {
+  let finalUserId = overrideUserId;
+  if (!finalUserId) {
+    const session = await auth();
+    finalUserId = session?.user?.id;
+  }
+  if (!finalUserId) throw new Error("인증이 필요합니다.");
 
-  await prisma.event.delete({
-    where: { id }
+  const user = await prisma.user.findUnique({
+    where: { userId: finalUserId },
   });
+  if (!user) throw new Error("사용자를 찾을 수 없습니다.");
+
+  const deleted = await prisma.event.deleteMany({
+    where: { id, userId: user.userId },
+  });
+  if (deleted.count === 0) throw new Error("일정을 찾을 수 없습니다.");
 
   revalidatePath("/");
   return { success: true };
