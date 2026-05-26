@@ -69,7 +69,7 @@ export async function scheduleAction(
   let model;
   switch (modelType) {
     case 'ollama':
-      model = ollamaProvider('gemma4:e4b');
+      model = ollamaProvider('llama3.1:8b');
       break;
     case 'gemini':
     default:

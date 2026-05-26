@@ -137,7 +137,7 @@ export function AIChat() {
             className="cursor-pointer bg-transparent text-xs font-medium text-slate-700 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
             aria-label="AI 모델 선택"
           >
-            <option value="ollama">gemma4:e4b</option>
+            <option value="ollama">llama3.1:8b</option>
             <option value="gemini">gemini-2.5-flash</option>
           </select>
         </div>
